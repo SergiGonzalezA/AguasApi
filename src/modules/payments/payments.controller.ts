@@ -9,6 +9,7 @@ export class PaymentsController {
 
   @Post()
   create(@Body() createPaymentDto: CreatePaymentDto) {
+    console.log('a ver ', createPaymentDto);
     return this.paymentsService.create(createPaymentDto);
   }
 
@@ -24,7 +25,7 @@ export class PaymentsController {
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updatePaymentDto: UpdatePaymentDto) {
-    return this.paymentsService.update(+id, updatePaymentDto);
+    return this.paymentsService.update(id, updatePaymentDto);
   }
 
   @Delete(':id')
