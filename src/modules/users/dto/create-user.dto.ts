@@ -14,5 +14,9 @@ export class CreateUserDto {
 
   debtMonths: number;
 
+  lastPaymentAmount: number;
+
+  lastPaymentDate: string;
+
   isActive: boolean;
 }
