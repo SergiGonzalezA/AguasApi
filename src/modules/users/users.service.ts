@@ -53,6 +53,10 @@ export class UsersService {
     return deletedUser;
   }
 
+  async bulkCreate(users: any[]) {
+    return this.userModel.insertMany(users);
+  }
+
   private validateObjectId(id: string) {
     if (!isValidObjectId(id)) {
       throw new BadRequestException(`Invalid ObjectId: "${id}"`);
