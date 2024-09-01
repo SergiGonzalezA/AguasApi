@@ -8,6 +8,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, isValidObjectId } from 'mongoose';
 import { Payment } from 'src/schemas/payments.schema';
 import { UsersService } from '../users/users.service';
+const dayjs = require('dayjs');
 
 @Injectable()
 export class PaymentsService {
@@ -26,6 +27,10 @@ export class PaymentsService {
 
   async findAll(): Promise<Payment[]> {
     return this.paymentModel.find().exec();
+  }
+
+  async getActivePayments(): Promise<Payment[]> {
+    return this.paymentModel.find({ isRevert: false }).exec();
   }
 
   findOne(id: number) {
@@ -59,8 +64,11 @@ export class PaymentsService {
       const user = await this.usersService.findOne(userId);
       const updatedUserDto = {
         pendingBalance: user.pendingBalance - createPaymentDto.paymentValue,
-        debtMonths: (user.pendingBalance - createPaymentDto.paymentValue ) / 12000
+        debtMonths: (user.pendingBalance - createPaymentDto.paymentValue ) / 12000,
+        lastPaymentAmount: createPaymentDto.paymentValue,
+        lastPaymentDate: dayjs().format('YYYY-MM-DD')
       };
+      
       await this.usersService.update(userId, updatedUserDto);
     } catch (error) {
       console.error('Error actualizando los datos del usuario:', error);

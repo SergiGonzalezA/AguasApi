@@ -20,6 +20,12 @@ export class User {
   @Prop({ default: 0 })
   debtMonths: number;
 
+  @Prop({ default: 0 })
+  lastPaymentAmount: number;
+
+  @Prop({ default: null })
+  lastPaymentDate: string;
+
   @Prop({ default: true })
   isActive: boolean;
 }

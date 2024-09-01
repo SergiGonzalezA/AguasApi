@@ -9,13 +9,17 @@ export class PaymentsController {
 
   @Post()
   create(@Body() createPaymentDto: CreatePaymentDto) {
-    console.log('a ver ', createPaymentDto);
     return this.paymentsService.create(createPaymentDto);
   }
 
   @Get()
   findAll() {
     return this.paymentsService.findAll();
+  }
+
+  @Get('payment-active')
+  async getActiveUsers() {
+    return this.paymentsService.getActivePayments();
   }
 
   @Get(':id')
