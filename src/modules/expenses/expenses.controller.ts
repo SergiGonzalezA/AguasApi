@@ -17,18 +17,23 @@ export class ExpensesController {
     return this.expensesService.findAll();
   }
 
+  @Get('expense-active')
+  async getActiveUsers() {
+    return this.expensesService.getActiveExpenses();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.expensesService.findOne(+id);
+    return this.expensesService.findOne(id);
   }
 
   @Patch(':id')
   update(@Param('id') id: string, @Body() updateExpenseDto: UpdateExpenseDto) {
-    return this.expensesService.update(+id, updateExpenseDto);
+    return this.expensesService.update(id, updateExpenseDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.expensesService.remove(+id);
+    return this.expensesService.remove(id);
   }
 }
