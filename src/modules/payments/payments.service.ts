@@ -8,7 +8,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, isValidObjectId } from 'mongoose';
 import { Payment } from 'src/schemas/payments.schema';
 import { UsersService } from '../users/users.service';
-const dayjs = require('dayjs');
 
 @Injectable()
 export class PaymentsService {
@@ -65,8 +64,6 @@ export class PaymentsService {
       const updatedUserDto = {
         pendingBalance: user.pendingBalance - createPaymentDto.paymentValue,
         debtMonths: (user.pendingBalance - createPaymentDto.paymentValue ) / 12000,
-        lastPaymentAmount: createPaymentDto.paymentValue,
-        lastPaymentDate: dayjs().format('YYYY-MM-DD')
       };
       
       await this.usersService.update(userId, updatedUserDto);
