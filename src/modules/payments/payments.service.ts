@@ -20,7 +20,7 @@ export class PaymentsService {
   async create(createPaymentDto: CreatePaymentDto): Promise<Payment> {
     const createdPayment = new this.paymentModel(createPaymentDto);
     await createdPayment.save();
-    await this.updateUserData(createPaymentDto);
+    await this.updateUserData(createPaymentDto, false);
     return createdPayment;
   }
 
@@ -44,6 +44,7 @@ export class PaymentsService {
     if (!updatedPayment) {
       throw new NotFoundException(`User with ID "${id}" not found`);
     }
+    await this.updateUserData(updatePaymentDto, true);
     return updatedPayment;
   }
 
@@ -57,15 +58,15 @@ export class PaymentsService {
     }
   }
 
-  private async updateUserData(createPaymentDto: CreatePaymentDto) {
+  private async updateUserData(createPaymentDto: CreatePaymentDto, isReverse:boolean) {
     try {
       const userId = createPaymentDto._idUser; 
       const user = await this.usersService.findOne(userId);
+      const paymentAdjustment = isReverse ? createPaymentDto.paymentValue : -createPaymentDto.paymentValue;
       const updatedUserDto = {
-        pendingBalance: user.pendingBalance - createPaymentDto.paymentValue,
-        debtMonths: (user.pendingBalance - createPaymentDto.paymentValue ) / 12000,
+        pendingBalance: user.pendingBalance + paymentAdjustment,
+        debtMonths:  Math.ceil((user.pendingBalance + paymentAdjustment) / 12000),
       };
-      
       await this.usersService.update(userId, updatedUserDto);
     } catch (error) {
       console.error('Error actualizando los datos del usuario:', error);
