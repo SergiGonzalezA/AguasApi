@@ -1,34 +1,20 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, StreamableFile, Res } from '@nestjs/common';
+import { Response } from 'express';
 import { ReceiptsService } from './receipts.service';
-import { CreateReceiptDto } from './dto/create-receipt.dto';
-import { UpdateReceiptDto } from './dto/update-receipt.dto';
 
 @Controller('api/v1/receipts')
 export class ReceiptsController {
   constructor(private readonly receiptsService: ReceiptsService) {}
 
-  @Post()
-  create(@Body() createReceiptDto: CreateReceiptDto) {
-    return this.receiptsService.create(createReceiptDto);
-  }
+  @Get('pdf')
+  async generateReceipts(@Res({ passthrough: true }) res: Response) {
+    const pdfBuffer = await this.receiptsService.generateAllReceipts();
+    
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename="receipts.pdf"',
+    });
 
-  @Get()
-  findAll() {
-    return this.receiptsService.findAll();
-  }
-
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.receiptsService.findOne(+id);
-  }
-
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateReceiptDto: UpdateReceiptDto) {
-    return this.receiptsService.update(+id, updateReceiptDto);
-  }
-
-  @Delete(':id')
-  remove(@Param('id') id: string) {
-    return this.receiptsService.remove(+id);
+    return new StreamableFile(pdfBuffer);
   }
 }
