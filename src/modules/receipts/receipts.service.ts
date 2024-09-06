@@ -72,8 +72,8 @@ export class ReceiptsService {
     $('#fullName').text(user.fullName);
     $('#totalAmount').text('12000');
     $('#dueDate').text(dayjs().endOf('month').format('DD/MM/YYYY'));
-    $('#debtMonths').text((user.debtMonths + 1).toString());
-    $('#totalDebt').text((user.pendingBalance + 12000).toString());
+    $('#debtMonths').text((user.debtMonths).toString());
+    $('#totalDebt').text((user.pendingBalance).toString());
     $('#printDate').text(dayjs().format('DD/MM/YYYY'));
 
     return $.xml();
@@ -94,6 +94,7 @@ export class ReceiptsService {
 
   async generateAllReceipts(): Promise<Buffer> {
     const users = await this.userModel.find({ isActive: true }).exec();
+    const currentMonth = dayjs().month();
     console.log('usuarios consultados para recibo', users.length);
 
     const pdfBuffer: Buffer[] = [];
@@ -112,6 +113,18 @@ export class ReceiptsService {
     const marginLeft = (pageWidth - svgWidth) / 2;
 
     const receiptPromises = users.map(async (user, index) => {
+      const lastReceiptGeneratedAt = user.lastReceiptGeneratedAt 
+        ? dayjs(user.lastReceiptGeneratedAt) 
+        : null;
+
+      // Si no hay recibo previo o el recibo fue generado en un mes anterior, actualiza el balance
+      if (!lastReceiptGeneratedAt || lastReceiptGeneratedAt.month() !== currentMonth) {
+        user.pendingBalance += 12000;
+        user.debtMonths += 1;
+        user.lastReceiptGeneratedAt = dayjs().toDate();
+        await user.save();
+      }
+
       const receiptSVG = await this.generateReceiptSVG(user);
       SVGtoPDF(pdfDoc, receiptSVG, marginLeft, 0);
       if (index < users.length - 1) pdfDoc.addPage();
