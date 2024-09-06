@@ -22,6 +22,10 @@ export class User {
 
   @Prop({ default: true })
   isActive: boolean;
+
+  @Prop({ type: Date, default: null })
+  lastReceiptGeneratedAt: Date;
+
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);
