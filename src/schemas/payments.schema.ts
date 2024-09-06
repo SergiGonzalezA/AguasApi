@@ -26,6 +26,11 @@ export class Payment {
   @Prop({ default: false })
   isRevert: boolean;
 
+  @Prop()
+  createdAt: Date;
+
+  @Prop()
+  updatedAt: Date;
 }
 
 export const PaymentSchema = SchemaFactory.createForClass(Payment);
