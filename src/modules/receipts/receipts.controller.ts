@@ -1,4 +1,4 @@
-import { Controller, Get, StreamableFile, Res } from '@nestjs/common';
+import { Controller, Get, Param, StreamableFile, Res } from '@nestjs/common';
 import { Response } from 'express';
 import { ReceiptsService } from './receipts.service';
 
@@ -13,6 +13,21 @@ export class ReceiptsController {
     res.set({
       'Content-Type': 'application/pdf',
       'Content-Disposition': 'attachment; filename="receipts.pdf"',
+    });
+
+    return new StreamableFile(pdfBuffer);
+  }
+
+  @Get('payments/:id')
+  async generatePaymentReceipt(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const pdfBuffer = await this.receiptsService.generateSinglePaymentReceipt(id);
+    
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename="payment-receipt.pdf"',
     });
 
     return new StreamableFile(pdfBuffer);
