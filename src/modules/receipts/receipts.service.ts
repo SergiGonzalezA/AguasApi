@@ -14,7 +14,7 @@ export class ReceiptsService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Payment.name) private paymentModel: Model<Payment>,
-  ) {}
+  ) { }
 
   private readonly svgTemplate: string = `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="400" viewBox="0 0 500 400">
   <rect width="100%" height="100%" fill="#f9f9f9"/>
@@ -66,19 +66,6 @@ export class ReceiptsService {
   <text x="250" y="320" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" fill="#000080">Gracias por su pago</text>
 </svg>`;
 
-  private async generateReceiptSVG(user: User): Promise<string> {
-    const $ = cheerio.load(this.svgTemplate, { xmlMode: true });
-
-    $('#fullName').text(user.fullName);
-    $('#totalAmount').text('12000');
-    $('#dueDate').text(dayjs().endOf('month').format('DD/MM/YYYY'));
-    $('#debtMonths').text((user.debtMonths).toString());
-    $('#totalDebt').text((user.pendingBalance).toString());
-    $('#printDate').text(dayjs().format('DD/MM/YYYY'));
-
-    return $.xml();
-  }
-
   private async generatePaymentReceiptSVG(payment: Payment): Promise<string> {
     const $ = cheerio.load(this.svgPaymentTemplate, { xmlMode: true });
 
@@ -90,6 +77,46 @@ export class ReceiptsService {
     $('#paymentDate').text(dayjs(payment.createdAt).format('DD/MM/YYYY'));
 
     return $.xml();
+  }
+
+  private async generateDualReceiptSVG(user1: User, user2?: User): Promise<string> {
+    const generateSingleReceiptSVG = (user: User, yOffset: number = 0) => {
+      const $ = cheerio.load(this.svgTemplate, { xmlMode: true });
+
+      $('svg').attr('height', '850');
+      $('svg').attr('viewBox', `0 0 500 850`);
+
+      const groupElement = $('<g></g>');
+      groupElement.attr('transform', `translate(0, ${yOffset})`);
+
+      $('svg > *').each((_, elem) => {
+        groupElement.append($(elem).clone());
+      });
+
+      $('svg').empty().append(groupElement);
+
+      $('#fullName', groupElement).text(user.fullName);
+      $('#totalAmount', groupElement).text('12000');
+      $('#dueDate', groupElement).text(dayjs().endOf('month').format('DD/MM/YYYY'));
+      $('#debtMonths', groupElement).text((user.debtMonths).toString());
+      $('#totalDebt', groupElement).text((user.pendingBalance).toString());
+      $('#printDate', groupElement).text(dayjs().format('DD/MM/YYYY'));
+
+      return $.xml();
+    };
+
+    const svg1 = generateSingleReceiptSVG(user1);
+    let combinedSVG = svg1;
+
+    if (user2) {
+      const svg2 = generateSingleReceiptSVG(user2, 425);
+      const $combined = cheerio.load(svg1, { xmlMode: true });
+      const $svg2 = cheerio.load(svg2, { xmlMode: true });
+      $combined('svg').append($svg2('svg > g'));
+      combinedSVG = $combined.xml();
+    }
+
+    return combinedSVG;
   }
 
   async generateAllReceipts(): Promise<Buffer> {
@@ -105,32 +132,39 @@ export class ReceiptsService {
       },
     });
 
-    const pdfDoc = new PDFDocument();
+    const pdfDoc = new PDFDocument({ size: 'A4' });
     pdfDoc.pipe(stream);
 
     const pageWidth = pdfDoc.page.width;
-    const svgWidth = 400;
+    const svgWidth = 500;
     const marginLeft = (pageWidth - svgWidth) / 2;
 
-    const receiptPromises = users.map(async (user, index) => {
-      const lastReceiptGeneratedAt = user.lastReceiptGeneratedAt 
-        ? dayjs(user.lastReceiptGeneratedAt) 
-        : null;
+    for (let i = 0; i < users.length; i += 2) {
+      const user1 = users[i];
+      const user2 = users[i + 1];
 
-      // Si no hay recibo previo o el recibo fue generado en un mes anterior, actualiza el balance
-      if (!lastReceiptGeneratedAt || lastReceiptGeneratedAt.month() !== currentMonth) {
-        user.pendingBalance += 12000;
-        user.debtMonths += 1;
-        user.lastReceiptGeneratedAt = dayjs().toDate();
-        await user.save();
+      [user1, user2].forEach(user => {
+        if (user) {
+          const lastReceiptGeneratedAt = user.lastReceiptGeneratedAt
+            ? dayjs(user.lastReceiptGeneratedAt)
+            : null;
+
+          if (!lastReceiptGeneratedAt || lastReceiptGeneratedAt.month() !== currentMonth) {
+            user.pendingBalance += 12000;
+            user.debtMonths += 1;
+            user.lastReceiptGeneratedAt = dayjs().toDate();
+            user.save();
+          }
+        }
+      });
+
+      const dualReceiptSVG = await this.generateDualReceiptSVG(user1, user2);
+      SVGtoPDF(pdfDoc, dualReceiptSVG, marginLeft, 0, { width: svgWidth, height: 800 });
+      
+      if (i < users.length - 2) {
+        pdfDoc.addPage();
       }
-
-      const receiptSVG = await this.generateReceiptSVG(user);
-      SVGtoPDF(pdfDoc, receiptSVG, marginLeft, 0);
-      if (index < users.length - 1) pdfDoc.addPage();
-    });
-
-    await Promise.all(receiptPromises);
+    }
 
     pdfDoc.end();
 
