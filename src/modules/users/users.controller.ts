@@ -65,7 +65,8 @@ export class UsersController {
             phone: typeof rowValues[2] === 'string' ? rowValues[2].trim() : '',
             pendingBalance: 0,
             debtMonths: 0,
-            isActive: true
+            isActive: true,
+            areaId: null
           };
   
           console.log('user csv creado:', user);
