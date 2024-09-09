@@ -8,12 +8,14 @@ const PDFDocument = require('pdfkit');
 const SVGtoPDF = require('svg-to-pdfkit');
 import { Stream } from 'stream';
 import { Payment } from 'src/schemas/payments.schema';
+import { Parameter } from 'src/schemas/parameters.schema';
 
 @Injectable()
 export class ReceiptsService {
   constructor(
     @InjectModel(User.name) private userModel: Model<User>,
     @InjectModel(Payment.name) private paymentModel: Model<Payment>,
+    @InjectModel(Parameter.name) private parameterModel: Model<Parameter>
   ) { }
 
   private readonly svgTemplate: string = `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="400" viewBox="0 0 500 400">
@@ -80,6 +82,8 @@ export class ReceiptsService {
   }
 
   private async generateDualReceiptSVG(user1: User, user2?: User): Promise<string> {
+    const monthlyValueParameter = await this.parameterModel.find({ name: 'VALOR_MES' }).exec();
+
     const generateSingleReceiptSVG = (user: User, yOffset: number = 0) => {
       const $ = cheerio.load(this.svgTemplate, { xmlMode: true });
 
@@ -96,7 +100,7 @@ export class ReceiptsService {
       $('svg').empty().append(groupElement);
 
       $('#fullName', groupElement).text(user.fullName);
-      $('#totalAmount', groupElement).text('12000');
+      $('#totalAmount', groupElement).text(monthlyValueParameter[0].value);
       $('#dueDate', groupElement).text(dayjs().endOf('month').format('DD/MM/YYYY'));
       $('#debtMonths', groupElement).text((user.debtMonths).toString());
       $('#totalDebt', groupElement).text((user.pendingBalance).toString());
@@ -120,6 +124,7 @@ export class ReceiptsService {
   }
 
   async generateAllReceipts(): Promise<Buffer> {
+    const monthlyValueParameter = await this.parameterModel.find({ name: 'VALOR_MES' }).exec();
     const users = await this.userModel.find({ isActive: true }).exec();
     const currentMonth = dayjs().month();
     console.log('usuarios consultados para recibo', users.length);
@@ -150,7 +155,7 @@ export class ReceiptsService {
             : null;
 
           if (!lastReceiptGeneratedAt || lastReceiptGeneratedAt.month() !== currentMonth) {
-            user.pendingBalance += 12000;
+            user.pendingBalance += Number(monthlyValueParameter[0].value);
             user.debtMonths += 1;
             user.lastReceiptGeneratedAt = dayjs().toDate();
             user.save();
