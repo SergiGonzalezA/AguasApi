@@ -15,7 +15,6 @@ export class CreateUserDto {
   debtMonths: number;
 
   isActive: boolean;
-  
-  @IsString()
-  areaId: string;
+
+  areaId: boolean;
 }
