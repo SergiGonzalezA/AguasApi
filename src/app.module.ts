@@ -6,6 +6,7 @@ import { ReceiptsModule } from './modules/receipts/receipts.module';
 import { PaymentsModule } from './modules/payments/payments.module';
 import { ExpensesModule } from './modules/expenses/expenses.module';
 import { ReportsModule } from './modules/reports/reports.module';
+import { ParametersModule } from './modules/parameters/parameters.module';
 import { ConfigModule } from '@nestjs/config';
 import { MongooseModule } from '@nestjs/mongoose';
 
@@ -20,6 +21,7 @@ import { MongooseModule } from '@nestjs/mongoose';
     PaymentsModule,
     ExpensesModule,
     ReportsModule,
+    ParametersModule
   ],
   controllers: [AppController],
   providers: [AppService],
