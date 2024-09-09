@@ -23,6 +23,9 @@ export class User {
   @Prop({ default: true })
   isActive: boolean;
 
+  @Prop({ default: null })
+  areaId: string;
+
   @Prop({ type: Date, default: null })
   lastReceiptGeneratedAt: Date;
 

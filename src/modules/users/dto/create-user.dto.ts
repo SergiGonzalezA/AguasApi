@@ -15,4 +15,6 @@ export class CreateUserDto {
   debtMonths: number;
 
   isActive: boolean;
+
+  areaId: boolean;
 }
