@@ -81,6 +81,20 @@ export class ReceiptsService {
     return $.xml();
   }
 
+  private async generateSingleReceiptSVG(user: User): Promise<string> {
+    const $ = cheerio.load(this.svgTemplate, { xmlMode: true });
+    const monthlyValueParameter = await this.parameterModel.find({ name: 'VALOR_MES' }).exec();
+
+    $('#fullName').text(user.fullName);
+    $('#totalAmount').text(monthlyValueParameter[0].value);
+    $('#dueDate').text(dayjs().endOf('month').format('DD/MM/YYYY'));
+    $('#debtMonths').text((user.debtMonths).toString());
+    $('#totalDebt').text((user.pendingBalance).toString());
+    $('#printDate').text(dayjs().format('DD/MM/YYYY'));
+
+    return $.xml();
+  }
+
   private async generateDualReceiptSVG(user1: User, user2?: User): Promise<string> {
     const monthlyValueParameter = await this.parameterModel.find({ name: 'VALOR_MES' }).exec();
 
@@ -165,7 +179,7 @@ export class ReceiptsService {
 
       const dualReceiptSVG = await this.generateDualReceiptSVG(user1, user2);
       SVGtoPDF(pdfDoc, dualReceiptSVG, marginLeft, 0, { width: svgWidth, height: 800 });
-      
+
       if (i < users.length - 2) {
         pdfDoc.addPage();
       }
@@ -205,6 +219,42 @@ export class ReceiptsService {
     const marginLeft = (pageWidth - svgWidth) / 2;
 
     const receiptSVG = await this.generatePaymentReceiptSVG(payment);
+    SVGtoPDF(pdfDoc, receiptSVG, marginLeft, 0);
+
+    pdfDoc.end();
+
+    return new Promise((resolve, reject) => {
+      stream.on('finish', () => {
+        resolve(Buffer.concat(pdfBuffer));
+      });
+      stream.on('error', (err) => {
+        reject(err);
+      });
+    });
+  }
+
+  async generateSingleReceipt(userId: string): Promise<Buffer> {
+    const user = await this.userModel.findById(userId).exec();
+    if (!user) {
+      throw new NotFoundException(`User with ID ${userId} not found`);
+    }
+
+    const pdfBuffer: Buffer[] = [];
+    const stream = new Stream.Writable({
+      write(chunk, _encoding, next) {
+        pdfBuffer.push(chunk);
+        next();
+      },
+    });
+
+    const pdfDoc = new PDFDocument();
+    pdfDoc.pipe(stream);
+
+    const pageWidth = pdfDoc.page.width;
+    const svgWidth = 400;
+    const marginLeft = (pageWidth - svgWidth) / 2;
+
+    const receiptSVG = await this.generateSingleReceiptSVG(user);
     SVGtoPDF(pdfDoc, receiptSVG, marginLeft, 0);
 
     pdfDoc.end();

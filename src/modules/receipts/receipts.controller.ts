@@ -32,4 +32,19 @@ export class ReceiptsController {
 
     return new StreamableFile(pdfBuffer);
   }
+
+  @Get('users/:id')
+  async generateUserReceipt(
+    @Param('id') id: string,
+    @Res({ passthrough: true }) res: Response
+  ) {
+    const pdfBuffer = await this.receiptsService.generateSingleReceipt(id);
+    
+    res.set({
+      'Content-Type': 'application/pdf',
+      'Content-Disposition': 'attachment; filename="user-receipt.pdf"',
+    });
+
+    return new StreamableFile(pdfBuffer);
+  }
 }
