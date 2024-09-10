@@ -18,30 +18,47 @@ export class ReceiptsService {
     @InjectModel(Parameter.name) private parameterModel: Model<Parameter>
   ) { }
 
-  private readonly svgTemplate: string = `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="400" viewBox="0 0 500 400">
-  <rect width="100%" height="100%" fill="#f9f9f9"/>
+  private readonly svgTemplate: string = `
+ <svg xmlns="http://www.w3.org/2000/svg" width="600" height="400" viewBox="0 0 550 300">
+  <rect width="100%" height="100%" fill="#ffffff"/>
   
   <!-- Logo -->
-  <circle cx="50" cy="50" r="30" fill="#4682b4"/>
-  <path d="M35 50 Q50 30 65 50 T85 50" fill="none" stroke="#ffffff" stroke-width="3"/>
+  <circle cx="30" cy="30" r="20" fill="#4682b4"/>
+  <path d="M20 30 Q30 15 40 30 T50 30" fill="none" stroke="#ffffff" stroke-width="2"/>
   
-  <!-- Título -->
-  <text x="250" y="40" font-family="Arial, sans-serif" font-size="26" text-anchor="middle" fill="#000080">ASUAPOBLADO</text>
+  <!-- Company Name -->
+  <text x="60" y="35" font-family="Arial, sans-serif" font-size="18" fill="#4682b4">ASUAPOBLADO</text>
   
-  <!-- Información del usuario -->
-  <text x="30" y="100" font-family="Arial, sans-serif" font-size="16" fill="#000000">Nombre: <tspan id="fullName">{{fullName}}</tspan></text>
-  <text x="30" y="130" font-family="Arial, sans-serif" font-size="16" fill="#000000">Total a pagar: $<tspan id="totalAmount">12000</tspan></text>
-  <text x="30" y="160" font-family="Arial, sans-serif" font-size="16" fill="#000000">Fecha pago oportuno: <tspan id="dueDate">{{dueDate}}</tspan></text>
-  <text x="30" y="190" font-family="Arial, sans-serif" font-size="16" fill="#000000">Meses de deuda: <tspan id="debtMonths">{{debtMonths}}</tspan></text>
-  <text x="30" y="220" font-family="Arial, sans-serif" font-size="16" fill="#000000">Total adeudado: $<tspan id="totalDebt">{{totalDebt}}</tspan></text>
-  <text x="30" y="250" font-family="Arial, sans-serif" font-size="16" fill="#000000">Fecha de impresión: <tspan id="printDate">{{printDate}}</tspan></text>
+  <!-- Main Content -->
+  <rect x="10" y="50" width="540" height="240" fill="none" stroke="#000000" stroke-width="1"/>
   
-  <!-- Línea separadora -->
-  <line x1="30" y1="280" x2="470" y2="280" stroke="#000080" stroke-width="2"/>
+  <!-- User Data Section -->
+  <rect x="20" y="60" width="520" height="30" fill="#f0f0f0" stroke="#000000" stroke-width="1"/>
+  <text x="25" y="80" font-family="Arial, sans-serif" font-size="14" fill="#000000">Datos del Usuario</text>
   
-  <!-- Mensaje -->
-  <text x="250" y="320" font-family="Arial, sans-serif" font-size="18" text-anchor="middle" fill="#000080">Gracias por su pago</text>
-</svg>`;
+  <!-- User Name -->
+  <rect x="20" y="95" width="520" height="25" fill="#bcb2a8" stroke="#000000" stroke-width="1"/>
+  <text x="25" y="113" font-family="Arial, sans-serif" font-size="14" fill="#000000"><tspan id="fullName">{{fullName}}</tspan></text>
+  
+  <!-- Payment Information -->
+  <text x="25" y="145" font-family="Arial, sans-serif" font-size="14" fill="#000000">Total a pagar mes: $<tspan id="totalAmount">{{totalAmount}}</tspan></text>
+  <text x="300" y="145" font-family="Arial, sans-serif" font-size="14" fill="#000000">Fecha pago oportuno: <tspan id="dueDate">{{dueDate}}</tspan></text>
+  
+  <text x="25" y="175" font-family="Arial, sans-serif" font-size="14" fill="#000000">Meses de deuda: <tspan id="debtMonths">{{debtMonths}}</tspan></text>
+  <text x="300" y="175" font-family="Arial, sans-serif" font-size="14" fill="#000000">Total adeudado: $<tspan id="totalDebt">{{totalDebt}}</tspan></text>
+  
+  <!-- Separator Line -->
+  <line x1="20" y1="190" x2="540" y2="190" stroke="#000000" stroke-dasharray="10,10"/>
+  
+  <!-- Bottom Section -->
+  <text x="25" y="220" font-family="Arial, sans-serif" font-size="14" fill="#000000">Usuario: <tspan id="fullName">{{fullName}}</tspan></text>
+  <text x="25" y="245" font-family="Arial, sans-serif" font-size="14" fill="#000000">Total a pagar mes: $<tspan id="totalAmount">{{totalAmount}}</tspan></text>
+  <text x="300" y="245" font-family="Arial, sans-serif" font-size="14" fill="#000000">Fecha pago oportuno: <tspan id="dueDate">{{dueDate}}</tspan></text>
+  
+  <text x="25" y="270" font-family="Arial, sans-serif" font-size="14" fill="#000000">Fecha impresión: <tspan id="printDate">{{printDate}}</tspan></text>
+  <text x="300" y="270" font-family="Arial, sans-serif" font-size="14" fill="#000000">Total adeudado: $<tspan id="totalDebt">{{totalDebt}}</tspan></text>
+</svg>
+  `;
 
   private readonly svgPaymentTemplate: string = `<svg xmlns="http://www.w3.org/2000/svg" width="500" height="400" viewBox="0 0 500 400">
   <rect width="100%" height="100%" fill="#f9f9f9"/>
@@ -102,7 +119,7 @@ export class ReceiptsService {
       const $ = cheerio.load(this.svgTemplate, { xmlMode: true });
 
       $('svg').attr('height', '850');
-      $('svg').attr('viewBox', `0 0 500 850`);
+      $('svg').attr('viewBox', `0 0 600 850`);
 
       const groupElement = $('<g></g>');
       groupElement.attr('transform', `translate(0, ${yOffset})`);
@@ -157,7 +174,7 @@ export class ReceiptsService {
     pdfDoc.pipe(stream);
 
     const pageWidth = pdfDoc.page.width;
-    const svgWidth = 500;
+    const svgWidth = 400;
     const marginLeft = (pageWidth - svgWidth) / 2;
 
     for (const [zoneId, zoneUsers] of Object.entries(usersByZone)) {
