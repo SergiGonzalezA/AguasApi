@@ -29,6 +29,7 @@ export class User {
   @Prop({ type: Date, default: null })
   lastReceiptGeneratedAt: Date;
 
+  _id: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

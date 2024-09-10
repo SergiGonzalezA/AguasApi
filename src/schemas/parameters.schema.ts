@@ -13,6 +13,8 @@ export class Parameter {
 
   @Prop({ required: true })
   description: string;
+
+  _id: string;
 }
 
 export const ParameterSchema = SchemaFactory.createForClass(Parameter);
