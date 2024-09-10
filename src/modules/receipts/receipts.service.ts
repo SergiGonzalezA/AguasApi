@@ -138,10 +138,12 @@ export class ReceiptsService {
   }
 
   async generateAllReceipts(): Promise<Buffer> {
-    const monthlyValueParameter = await this.parameterModel.find({ name: 'VALOR_MES' }).exec();
+    const monthlyValueParameter = await this.parameterModel.findOne({ name: 'VALOR_MES' }).exec();
+    const zones = await this.parameterModel.find({ name: 'ZONA_COBRO' }).exec();
     const users = await this.userModel.find({ isActive: true }).exec();
     const currentMonth = dayjs().month();
-    console.log('usuarios consultados para recibo', users.length);
+
+    const usersByZone = this.groupUsersByZone(users, zones);
 
     const pdfBuffer: Buffer[] = [];
     const stream = new Stream.Writable({
@@ -158,30 +160,27 @@ export class ReceiptsService {
     const svgWidth = 500;
     const marginLeft = (pageWidth - svgWidth) / 2;
 
-    for (let i = 0; i < users.length; i += 2) {
-      const user1 = users[i];
-      const user2 = users[i + 1];
+    for (const [zoneId, zoneUsers] of Object.entries(usersByZone)) {
+      if (zoneUsers.length === 0) continue;
 
-      [user1, user2].forEach(user => {
-        if (user) {
-          const lastReceiptGeneratedAt = user.lastReceiptGeneratedAt
-            ? dayjs(user.lastReceiptGeneratedAt)
-            : null;
+      pdfDoc.addPage();
+      const zoneName = zones.find(z => z._id.toString() === zoneId)?.value || 'SIN ZONA';
+      pdfDoc.fontSize(32).text(zoneName.toUpperCase(), 100, 100);
 
-          if (!lastReceiptGeneratedAt || lastReceiptGeneratedAt.month() !== currentMonth) {
-            user.pendingBalance += Number(monthlyValueParameter[0].value);
-            user.debtMonths += 1;
-            user.lastReceiptGeneratedAt = dayjs().toDate();
-            user.save();
-          }
+      for (let i = 0; i < zoneUsers.length; i += 2) {
+        if (i === 0) pdfDoc.addPage();
+
+        const user1 = zoneUsers[i];
+        const user2 = zoneUsers[i + 1];
+
+        await this.updateUserBalances([user1, user2], monthlyValueParameter?.value || '0', currentMonth);
+
+        const dualReceiptSVG = await this.generateDualReceiptSVG(user1, user2);
+        SVGtoPDF(pdfDoc, dualReceiptSVG, marginLeft, 50, { width: svgWidth, height: 800 });
+
+        if (i < zoneUsers.length - 2) {
+          pdfDoc.addPage();
         }
-      });
-
-      const dualReceiptSVG = await this.generateDualReceiptSVG(user1, user2);
-      SVGtoPDF(pdfDoc, dualReceiptSVG, marginLeft, 0, { width: svgWidth, height: 800 });
-
-      if (i < users.length - 2) {
-        pdfDoc.addPage();
       }
     }
 
@@ -195,6 +194,52 @@ export class ReceiptsService {
         reject(err);
       });
     });
+  }
+
+  private groupUsersByZone(users: User[], zones: Parameter[]): Record<string, User[]> {
+    const usersByZone: Record<string, User[]> = {
+      unassigned: []
+    };
+
+    zones.forEach(zone => {
+      usersByZone[zone._id.toString()] = [];
+    });
+
+    users.forEach(user => {
+      if (user.areaId && usersByZone[user.areaId]) {
+        usersByZone[user.areaId].push(user);
+      } else {
+        usersByZone.unassigned.push(user);
+      }
+    });
+
+    return usersByZone;
+  }
+
+  private async updateUserBalances(users: (User | undefined)[], monthlyValue: string, currentMonth: number): Promise<void> {
+    for (const user of users) {
+      if (user) {
+        const lastReceiptGeneratedAt = user.lastReceiptGeneratedAt
+          ? dayjs(user.lastReceiptGeneratedAt)
+          : null;
+
+        if (!lastReceiptGeneratedAt || lastReceiptGeneratedAt.month() !== currentMonth) {
+          user.pendingBalance += Number(monthlyValue);
+          user.debtMonths += 1;
+          user.lastReceiptGeneratedAt = dayjs().toDate();
+          await this.userModel.updateOne(
+            { _id: user._id },
+            {
+              $set: {
+                pendingBalance: user.pendingBalance,
+                debtMonths: user.debtMonths,
+                lastReceiptGeneratedAt: user.lastReceiptGeneratedAt
+              }
+            }
+          );
+        }
+      }
+    }
   }
 
   async generateSinglePaymentReceipt(paymentId: string): Promise<Buffer> {
