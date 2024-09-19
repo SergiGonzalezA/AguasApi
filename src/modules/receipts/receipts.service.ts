@@ -155,10 +155,10 @@ export class ReceiptsService {
   }
 
   async generateAllReceipts(): Promise<Buffer> {
-    // const monthlyValueParameter = await this.parameterModel.findOne({ name: 'VALOR_MES' }).exec();
+    const monthlyValueParameter = await this.parameterModel.findOne({ name: 'VALOR_MES' }).exec();
     const zones = await this.parameterModel.find({ name: 'ZONA_COBRO' }).exec();
     const users = await this.userModel.find({ isActive: true }).exec();
-    // const currentMonth = dayjs().month();
+    const currentMonth = dayjs().month();
 
     const usersByZone = this.groupUsersByZone(users, zones);
 
@@ -190,7 +190,7 @@ export class ReceiptsService {
         const user1 = zoneUsers[i];
         const user2 = zoneUsers[i + 1];
 
-        // await this.updateUserBalances([user1, user2], monthlyValueParameter?.value || '0', currentMonth);
+        await this.updateUserBalances([user1, user2], monthlyValueParameter?.value || '0', currentMonth);
 
         const dualReceiptSVG = await this.generateDualReceiptSVG(user1, user2);
         SVGtoPDF(pdfDoc, dualReceiptSVG, marginLeft, 50, { width: svgWidth, height: 800 });
